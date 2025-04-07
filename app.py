@@ -78,9 +78,9 @@ cache = Cache(app, config={
 })
 
 # API Anahtarları
-URLSCAN_API_KEY = '01960dde-fa26-738d-a733-fdc56a8509ad'
-ABUSEIPDB_API_KEY = '81685fdd2405aceaa812234d15ed0128622ad7efc3481b730b4d2c6d34ef600ed011b70bd608e845'
-MALWAREBAZAAR_API_KEY = '2127f03c7c078cf70849e957ec78bc6a0dc3e012bbdddd37'
+URLSCAN_API_KEY = 
+ABUSEIPDB_API_KEY = 
+MALWAREBAZAAR_API_KEY = 
 
 # Tehdit istihbaratı nesnelerini oluştur
 threat_collector = ThreatIntelCollector()
