@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.custom-progress {
+    height: 25px;
+}
+.custom-progress .progress-bar {
+    line-height: 25px;
+}
+.w-0 { width: 0%; }
+.w-10 { width: 10%; }
+.w-20 { width: 20%; }
+.w-30 { width: 30%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-60 { width: 60%; }
+.w-70 { width: 70%; }
+.w-80 { width: 80%; }
+.w-90 { width: 90%; }
+.w-100 { width: 100%; }
+
+/* Full-width adjustments */
+.container {
+    max-width: 100%;
+    padding: 0 2rem;
+}
+.card {
+    margin-bottom: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+.card-header, .card-body {
+    padding: 1.5rem;
+}
+</style>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Mail Güvenliği Kontrolü</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="mb-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="domain" class="form-label">Domain Adı</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="domain" name="domain" placeholder="ornek.com" required>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i>Kontrol Et
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    {% if result %}
+                    <div class="security-score mb-4">
+                        <h6 class="mb-2">Güvenlik Skoru</h6>
+                        {% set score_class = 'success' if result.score >= 70 else 'warning' if result.score >= 40 else 'danger' %}
+                        {% set score_width = (result.score // 10) * 10 %}
+                        <div class="progress custom-progress">
+                            <div class="progress-bar bg-{{ score_class }} w-{{ score_width }}"
+                                 role="progressbar"
+                                 aria-valuenow="{{ result.score }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                {{ result.score }}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- SPF Kaydı -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex align-items-center">
+                                    <i class="fas fa-shield-alt me-2"></i>
+                                    <h6 class="mb-0">SPF Kaydı</h6>
+                                    <span class="ms-auto badge bg-{{ 'success' if result.spf.exists else 'danger' }}">
+                                        {{ 'Aktif' if result.spf.exists else 'Pasif' }}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    {% if result.spf.exists %}
+                                        <p class="mb-2">Kayıt: <code>{{ result.spf.record }}</code></p>
+                                        <h6 class="mb-2">Mekanizmalar:</h6>
+                                        <ul class="list-unstyled">
+                                            {% for mechanism in result.spf.mechanisms %}
+                                                <li><code>{{ mechanism }}</code></li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="text-danger mb-0">SPF kaydı bulunamadı!</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DMARC Kaydı -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex align-items-center">
+                                    <i class="fas fa-check-double me-2"></i>
+                                    <h6 class="mb-0">DMARC Kaydı</h6>
+                                    <span class="ms-auto badge bg-{{ 'success' if result.dmarc.exists else 'danger' }}">
+                                        {{ 'Aktif' if result.dmarc.exists else 'Pasif' }}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    {% if result.dmarc.exists %}
+                                        <p class="mb-2">Kayıt: <code>{{ result.dmarc.record }}</code></p>
+                                        <div class="row g-3">
+                                            <div class="col-sm-6">
+                                                <p class="mb-1">Politika:</p>
+                                                <span class="badge bg-{{ 'success' if result.dmarc.policy == 'reject' else 'warning' if result.dmarc.policy == 'quarantine' else 'danger' }}">
+                                                    {{ result.dmarc.policy|upper }}
+                                                </span>
+                                            </div>
+                                            {% if result.dmarc.pct %}
+                                            <div class="col-sm-6">
+                                                <p class="mb-1">Uygulama Oranı:</p>
+                                                <span class="badge bg-info">{{ result.dmarc.pct }}%</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <p class="text-danger mb-0">DMARC kaydı bulunamadı!</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DKIM Kaydı -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex align-items-center">
+                                    <i class="fas fa-signature me-2"></i>
+                                    <h6 class="mb-0">DKIM Kaydı</h6>
+                                    <span class="ms-auto badge bg-{{ 'success' if result.dkim.exists else 'danger' }}">
+                                        {{ 'Aktif' if result.dkim.exists else 'Pasif' }}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    {% if result.dkim.exists %}
+                                        {% for record in result.dkim.records %}
+                                            <div class="mb-3">
+                                                <p class="mb-1">Seçici: <code>{{ record.selector }}</code></p>
+                                                <p class="mb-0">Kayıt: <code>{{ record.record[:100] }}...</code></p>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p class="text-danger mb-0">DKIM kaydı bulunamadı!</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MX Kaydı -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex align-items-center">
+                                    <i class="fas fa-mail-bulk me-2"></i>
+                                    <h6 class="mb-0">MX Kaydı</h6>
+                                    <span class="ms-auto badge bg-{{ 'success' if result.mx.exists else 'danger' }}">
+                                        {{ 'Aktif' if result.mx.exists else 'Pasif' }}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    {% if result.mx.exists %}
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Öncelik</th>
+                                                        <th>Sunucu</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for record in result.mx.records %}
+                                                        <tr>
+                                                            <td>{{ record.preference }}</td>
+                                                            <td>{{ record.exchange }}</td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-danger mb-0">MX kaydı bulunamadı!</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if result.recommendations %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Öneriler</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for recommendation in result.recommendations %}
+                                    <li class="list-group-item bg-transparent text-white">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        {{ recommendation }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form submit animasyonu
+    const form = document.querySelector('form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    form.addEventListener('submit', function() {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>Kontrol Ediliyor...';
+    });
+});
+</script>
+{% endblock %} 

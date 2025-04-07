@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Tehdit İstihbaratı Paneli</h2>
+    
+    <!-- Tehdit Türü Dağılımı -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tehdit Türü Dağılımı</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="threatTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Güven Skoru Dağılımı -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Güven Skoru Dağılımı</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="confidenceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tehdit Trendleri -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tehdit Trendleri (Son 7 Gün)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Son Tehditler Tablosu -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Son Tespit Edilen Tehditler</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Gösterge</th>
+                            <th>Tür</th>
+                            <th>Güven Skoru</th>
+                            <th>Kaynak</th>
+                            <th>Etiketler</th>
+                            <th>Son Görülme</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for threat in recent_threats %}
+                        <tr>
+                            <td>{{ threat.indicator }}</td>
+                            <td><span class="badge bg-{{ threat.type_class }}">{{ threat.type }}</span></td>
+                            <td>
+                                <div class="progress">
+                                    <div class="progress-bar bg-{{ threat.score_class }}" role="progressbar" 
+                                         style="width: {{ threat.confidence_score }}%" 
+                                         aria-valuenow="{{ threat.confidence_score }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ threat.confidence_score }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ threat.source }}</td>
+                            <td>
+                                {% for tag in threat.tags.split(',') %}
+                                <span class="badge bg-secondary">{{ tag }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>{{ threat.last_seen }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js kütüphanesi -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Tehdit Türü Grafiği
+const typeCtx = document.getElementById('threatTypeChart').getContext('2d');
+new Chart(typeCtx, {
+    type: 'pie',
+    data: {
+        labels: {{ type_labels | tojson }},
+        datasets: [{
+            data: {{ type_data | tojson }},
+            backgroundColor: [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0',
+                '#9966FF'
+            ]
+        }]
+    }
+});
+
+// Güven Skoru Grafiği
+const confidenceCtx = document.getElementById('confidenceChart').getContext('2d');
+new Chart(confidenceCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ confidence_labels | tojson }},
+        datasets: [{
+            data: {{ confidence_data | tojson }},
+            backgroundColor: [
+                '#4BC0C0',
+                '#36A2EB',
+                '#FFCE56',
+                '#FF6384'
+            ]
+        }]
+    }
+});
+
+// Trend Grafiği
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: {{ trend_dates | tojson }},
+        datasets: {{ trend_datasets | tojson | safe }}
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

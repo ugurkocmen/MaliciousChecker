@@ -1,0 +1,46 @@
+<div class="table-responsive">
+    <table class="table table-hover">
+        <tr>
+            <th style="width: 200px;">IP:</th>
+            <td>{{ result.ip }}</td>
+        </tr>
+        <tr>
+            <th>Güven Skoru:</th>
+            <td>
+                <div class="progress">
+                    <div class="progress-bar bg-{{ 'danger' if result.confidence_score > 50 else 'warning' if result.confidence_score > 25 else 'success' }}" 
+                         role="progressbar" 
+                         style="width: {{ result.confidence_score }}%">
+                        {{ result.confidence_score }}%
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <th>Toplam Rapor:</th>
+            <td>{{ result.total_reports }}</td>
+        </tr>
+        <tr>
+            <th>Ülke:</th>
+            <td>{{ result.country }}</td>
+        </tr>
+        <tr>
+            <th>ISP:</th>
+            <td>{{ result.isp }}</td>
+        </tr>
+        <tr>
+            <th>Domain:</th>
+            <td>{{ result.domain }}</td>
+        </tr>
+        <tr>
+            <th>Son Rapor:</th>
+            <td>{{ result.last_reported }}</td>
+        </tr>
+    </table>
+</div>
+
+<style>
+.progress {
+    height: 25px;
+}
+</style> 

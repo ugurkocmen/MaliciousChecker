@@ -1,0 +1,835 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="search-container">
+                <div class="container py-5">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="search-card">
+                                <h2 class="text-center mb-4">
+                                    <i class="fas fa-shield-alt me-2"></i>
+                                    Zararlı İçerik Kontrolü
+                                </h2>
+                                
+                                <form method="post" id="searchForm">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    
+                                    <div class="check-type-container mb-4">
+                                        <div class="form-check form-check-inline check-type-item">
+                                            <input class="form-check-input" type="radio" name="check_type" id="urlCheck" value="url" {% if default_type == 'url' %}checked{% endif %}>
+                                            <label class="form-check-label" for="urlCheck">
+                                                <i class="fas fa-link"></i> URL
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-check-inline check-type-item">
+                                            <input class="form-check-input" type="radio" name="check_type" id="ipCheck" value="ip" {% if default_type == 'ip' %}checked{% endif %}>
+                                            <label class="form-check-label" for="ipCheck">
+                                                <i class="fas fa-network-wired"></i> IP
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-check-inline check-type-item">
+                                            <input class="form-check-input" type="radio" name="check_type" id="hashCheck" value="hash" {% if default_type == 'hash' %}checked{% endif %}>
+                                            <label class="form-check-label" for="hashCheck">
+                                                <i class="fas fa-hashtag"></i> Hash
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="input-group mb-4">
+                                        <input type="text" class="form-control custom-input" name="value" placeholder="Kontrol edilecek değeri girin..." value="{{ value if value }}" required>
+                                        <button class="btn btn-primary custom-button" type="submit" id="searchButton">
+                                            <i class="fas fa-search me-2"></i>
+                                            Kontrol Et
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <!-- Loading Spinner -->
+                                <div id="loadingSpinner" class="text-center my-4" style="display: none;">
+                                    <div class="spinner">
+                                        <div class="double-bounce1"></div>
+                                        <div class="double-bounce2"></div>
+                                    </div>
+                                    <p class="mt-3 loading-text" id="loadingMessage">Tarama başlatılıyor...</p>
+                                </div>
+
+                                <!-- Error Messages -->
+                                {% with messages = get_flashed_messages(with_categories=true) %}
+                                    {% if messages %}
+                                        {% for category, message in messages %}
+                                            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                                                {{ message }}
+                                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endwith %}
+
+                                <!-- Results Section -->
+                                {% if result %}
+                                <div class="results-section">
+                                    {% if check_type == 'url' %}
+                                    <div class="result-tabs">
+                                        <button class="tab-button active" data-tab="phishing">Phishing Analizi</button>
+                                        <button class="tab-button" data-tab="urlscan">URLScan.io Sonuçları</button>
+                                    </div>
+                                    
+                                    <div class="tab-content active" id="phishing-tab">
+                                        <div class="result-card">
+                                            <h3>Phishing Analizi</h3>
+                                            <div class="result-grid">
+                                                {% if result.phishing_analysis %}
+                                                <div class="result-item">
+                                                    <span class="label">Phishing Skoru:</span>
+                                                    <span class="value">
+                                                        <div class="progress-container">
+                                                            <div class="progress-bar {% if result.phishing_analysis.score >= 75 %}danger{% elif result.phishing_analysis.score >= 25 %}warning{% else %}success{% endif %}" style="--progress-width: {{ result.phishing_analysis.score }}%">
+                                                                {{ result.phishing_analysis.score }}%
+                                                            </div>
+                                                        </div>
+                                                    </span>
+                                                </div>
+                                                
+                                                {% if result.phishing_analysis.details.typosquatting %}
+                                                <div class="result-item">
+                                                    <span class="label">Typosquatting Tespiti:</span>
+                                                    <span class="value">
+                                                        <ul class="phishing-reasons">
+                                                            {% for item in result.phishing_analysis.details.typosquatting %}
+                                                                <li>{{ item.target }} ile %{{ item.similarity }} benzerlik</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </span>
+                                                </div>
+                                                {% endif %}
+                                                
+                                                {% if result.phishing_analysis.details.similar_domains %}
+                                                <div class="result-item">
+                                                    <span class="label">Benzer Domainler:</span>
+                                                    <span class="value">
+                                                        <span class="badge bg-warning">Benzer domainler bulundu!</span>
+                                                    </span>
+                                                </div>
+                                                {% endif %}
+                                                
+                                                <div class="result-item">
+                                                    <span class="label">Domain Analizi:</span>
+                                                    <span class="value">
+                                                        <ul class="phishing-reasons">
+                                                            <li>Uzunluk: {{ result.phishing_analysis.details.domain_analysis.length }} karakter</li>
+                                                            <li>Alt Domain Sayısı: {{ result.phishing_analysis.details.domain_analysis.subdomains }}</li>
+                                                            {% if result.phishing_analysis.details.domain_analysis.special_chars %}
+                                                                <li>Özel Karakterler: {{ result.phishing_analysis.details.domain_analysis.special_chars|join(', ') }}</li>
+                                                            {% endif %}
+                                                        </ul>
+                                                    </span>
+                                                </div>
+                                                
+                                                <div class="result-item">
+                                                    <span class="label">SSL Analizi:</span>
+                                                    <span class="value">
+                                                        <ul class="phishing-reasons">
+                                                            <li>HTTPS Kullanımı: {% if result.phishing_analysis.details.ssl_analysis.uses_https %}Evet{% else %}Hayır{% endif %}</li>
+                                                        </ul>
+                                                    </span>
+                                                </div>
+                                                
+                                                {% if result.phishing_analysis.details.whois_analysis %}
+                                                <div class="result-item">
+                                                    <span class="label">WHOIS Bilgileri:</span>
+                                                    <span class="value">
+                                                        <ul class="phishing-reasons">
+                                                            <li>Domain Yaşı: {{ result.phishing_analysis.details.whois_analysis.age_days }} gün</li>
+                                                            <li>Kayıt Şirketi: {{ result.phishing_analysis.details.whois_analysis.registrar }}</li>
+                                                            <li>Oluşturulma: {{ result.phishing_analysis.details.whois_analysis.creation_date }}</li>
+                                                            <li>Bitiş: {{ result.phishing_analysis.details.whois_analysis.expiration_date }}</li>
+                                                        </ul>
+                                                    </span>
+                                                </div>
+                                                {% endif %}
+                                                
+                                                <div class="result-item">
+                                                    <span class="label">IP Analizi:</span>
+                                                    <span class="value">
+                                                        <ul class="phishing-reasons">
+                                                            <li>IP Adresi: {{ result.phishing_analysis.details.ip_analysis.ip }}</li>
+                                                            <li>Özel IP: {% if result.phishing_analysis.details.ip_analysis.is_private %}Evet (Şüpheli){% else %}Hayır{% endif %}</li>
+                                                            {% if result.phishing_analysis.details.ip_analysis.is_loopback %}
+                                                            <li>Loopback IP (127.0.0.1) tespit edildi</li>
+                                                            {% endif %}
+                                                        </ul>
+                                                    </span>
+                                                </div>
+                                                
+                                                <div class="result-item">
+                                                    <span class="label">URL Yapısı:</span>
+                                                    <span class="value">
+                                                        <ul class="phishing-reasons">
+                                                            <li>Uzunluk: {{ result.phishing_analysis.details.url_structure.length }} karakter</li>
+                                                            <li>Parametre Sayısı: {{ result.phishing_analysis.details.url_structure.param_count }}</li>
+                                                            <li>Fragment: {% if result.phishing_analysis.details.url_structure.has_fragment %}Var{% else %}Yok{% endif %}</li>
+                                                        </ul>
+                                                    </span>
+                                                </div>
+                                                
+                                                {% if result.phishing_analysis.reasons %}
+                                                <div class="result-item">
+                                                    <span class="label">Şüpheli Nedenler:</span>
+                                                    <span class="value">
+                                                        <ul class="phishing-reasons">
+                                                            {% for reason in result.phishing_analysis.reasons %}
+                                                                <li>{{ reason }}</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </span>
+                                                </div>
+                                                {% endif %}
+                                                {% else %}
+                                                <div class="result-item">
+                                                    <span class="label">Phishing Analizi:</span>
+                                                    <span class="value">
+                                                        <span class="badge bg-secondary">Phishing analizi yapılamadı</span>
+                                                    </span>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="tab-content" id="urlscan-tab">
+                                        {% if result.urlscan and result.urlscan.available and result.urlscan.results %}
+                                            <div class="result-card">
+                                                <h3>URLScan.io Analizi</h3>
+                                                <div class="result-grid">
+                                                    <div class="result-item">
+                                                        <span class="label">Durum:</span>
+                                                        <span class="value">
+                                                            {% if result.urlscan.results.verdicts.overall.malicious %}
+                                                                <span class="badge bg-danger">Zararlı</span>
+                                                            {% else %}
+                                                                <span class="badge bg-success">Güvenli</span>
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>
+                                                    <div class="result-item">
+                                                        <span class="label">Skor:</span>
+                                                        <span class="value">
+                                                            {% if result.urlscan.results.verdicts.overall.score %}
+                                                                <div class="progress-container">
+                                                                    <div class="progress-bar {% if result.urlscan.results.verdicts.overall.score >= 75 %}danger{% elif result.urlscan.results.verdicts.overall.score >= 25 %}warning{% else %}success{% endif %}" style="--progress-width: {{ result.urlscan.results.verdicts.overall.score }}%">
+                                                                        {{ result.urlscan.results.verdicts.overall.score }}%
+                                                                    </div>
+                                                                </div>
+                                                            {% else %}
+                                                                <span class="badge bg-secondary">Skorlama yapılmadı</span>
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {% if result.urlscan.results.verdicts.overall.categories %}
+                                                    <div class="result-item">
+                                                        <span class="label">Kategoriler:</span>
+                                                        <span class="value">
+                                                            {% for category in result.urlscan.results.verdicts.overall.categories %}
+                                                                <span class="badge bg-info">{{ category }}</span>
+                                                            {% endfor %}
+                                                        </span>
+                                                    </div>
+                                                    {% endif %}
+                                                    
+                                                    {% if result.urlscan.results.verdicts.overall.brands %}
+                                                    <div class="result-item">
+                                                        <span class="label">Markalar:</span>
+                                                        <span class="value">
+                                                            {% for brand in result.urlscan.results.verdicts.overall.brands %}
+                                                                <span class="badge bg-primary">{{ brand }}</span>
+                                                            {% endfor %}
+                                                        </span>
+                                                    </div>
+                                                    {% endif %}
+                                                    
+                                                    {% if result.urlscan.results.page %}
+                                                    <div class="result-item">
+                                                        <span class="label">Sayfa Bilgileri:</span>
+                                                        <span class="value">
+                                                            <ul class="plain-list">
+                                                                <li><strong>Başlık:</strong> {{ result.urlscan.results.page.title }}</li>
+                                                                <li><strong>IP:</strong> {{ result.urlscan.results.page.ip }}</li>
+                                                                <li><strong>Ülke:</strong> {{ result.urlscan.results.page.country }}</li>
+                                                                <li><strong>Sunucu:</strong> {{ result.urlscan.results.page.server }}</li>
+                                                            </ul>
+                                                        </span>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div class="result-card">
+                                                <h3>URLScan.io Analizi</h3>
+                                                <div class="alert alert-info mb-0">
+                                                    <i class="fas fa-info-circle me-2"></i>URLScan.io analiz sonuçları mevcut değil.
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    {% elif check_type == 'ip' %}
+                                    <div class="card mb-4">
+                                        <div class="card-header d-flex justify-content-between">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-network-wired me-2"></i>IP Analiz Sonuçları
+                                            </h5>
+                                            <span class="badge bg-{{ 'danger' if result.is_malicious else 'success' }}">
+                                                {{ 'Tehlikeli' if result.is_malicious else 'Güvenli' }}
+                                            </span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="alert alert-{{ 'danger' if result.is_malicious else 'success' }}">
+                                                <h5 class="alert-heading">
+                                                    <i class="fas fa-{{ 'exclamation-triangle' if result.is_malicious else 'check-circle' }} me-2"></i>
+                                                    Güven Skoru: {{ result.confidence_score }}
+                                                </h5>
+                                                <p>{{ result.risk_level }} risk seviyesi</p>
+                                            </div>
+                                            
+                                            <h6 class="border-bottom pb-2 mb-3">Detaylı Bilgiler</h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <th>IP Adresi:</th>
+                                                            <td>{{ result.ip }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>ISP:</th>
+                                                            <td>{{ result.isp }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Ülke:</th>
+                                                            <td>{{ result.country }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Domain:</th>
+                                                            <td>{{ result.domain }}</td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <th>Toplam Rapor:</th>
+                                                            <td>{{ result.total_reports }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Farklı Rapor Eden:</th>
+                                                            <td>{{ result.number_of_distinct_users }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Son Rapor:</th>
+                                                            <td>{{ result.last_reported_at }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Kullanım Tipi:</th>
+                                                            <td>{{ result.usage_type }}</td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% elif check_type == 'hash' %}
+                                    <div class="card mb-4">
+                                        <div class="card-header d-flex justify-content-between">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-file-code me-2"></i>Hash Analiz Sonuçları
+                                            </h5>
+                                            <span class="badge bg-{{ 'danger' if result.malicious else 'success' }}">
+                                                {{ 'Zararlı Yazılım' if result.malicious else 'Güvenli' }}
+                                            </span>
+                                        </div>
+                                        <div class="card-body">
+                                            {% if result.malicious %}
+                                            <div class="alert alert-danger">
+                                                <h5 class="alert-heading">
+                                                    <i class="fas fa-virus me-2"></i>
+                                                    Zararlı Yazılım Tespit Edildi
+                                                </h5>
+                                                <p>Bu hash değeri tehlikeli olarak işaretlenmiştir.</p>
+                                            </div>
+                                            
+                                            <h6 class="border-bottom pb-2 mb-3">Dosya Bilgileri</h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <th>Dosya Adı:</th>
+                                                            <td>{{ result.file_name }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Dosya Boyutu:</th>
+                                                            <td>{{ result.file_size }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Dosya Tipi:</th>
+                                                            <td>{{ result.file_type }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>MIME Tipi:</th>
+                                                            <td>{{ result.file_type_mime }}</td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <th>İmza:</th>
+                                                            <td>{{ result.signature }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>İlk Görülme:</th>
+                                                            <td>{{ result.first_seen }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Son Görülme:</th>
+                                                            <td>{{ result.last_seen }}</td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            
+                                            {% if result.tags %}
+                                            <h6 class="border-bottom pb-2 mb-3 mt-4">Etiketler</h6>
+                                            <div class="mb-4">
+                                                {% for tag in result.tags %}
+                                                <span class="badge bg-secondary me-1">{{ tag }}</span>
+                                                {% endfor %}
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <h6 class="border-bottom pb-2 mb-3 mt-4">Hash Değerleri</h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <th>MD5:</th>
+                                                            <td><code>{{ result.md5_hash }}</code></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>SHA1:</th>
+                                                            <td><code>{{ result.sha1_hash }}</code></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <th>SHA256:</th>
+                                                            <td><code>{{ result.sha256_hash }}</code></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>SHA3-384:</th>
+                                                            <td><code>{{ result.sha3_384_hash }}</code></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            {% else %}
+                                            <div class="alert alert-success">
+                                                <h5 class="alert-heading">
+                                                    <i class="fas fa-check-circle me-2"></i>
+                                                    Hash Güvenli
+                                                </h5>
+                                                <p>Bu hash değeri veritabanlarımızda zararlı olarak tespit edilmedi.</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.search-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0A2647 0%, #144272 100%);
+    padding: 2rem 0;
+}
+
+.search-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-card h2 {
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.check-type-container {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.check-type-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.check-type-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.form-check-label {
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.form-check-input {
+    cursor: pointer;
+}
+
+.custom-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.75rem 1rem;
+    border-radius: 10px 0 0 10px;
+}
+
+.custom-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.custom-input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #2C74B3;
+    color: #fff;
+    box-shadow: none;
+}
+
+.custom-button {
+    background: #2C74B3;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0 10px 10px 0;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.custom-button:hover {
+    background: #205295;
+    transform: translateX(2px);
+}
+
+/* Spinner Styles */
+.spinner {
+    width: 40px;
+    height: 40px;
+    position: relative;
+    margin: 0 auto;
+}
+
+.double-bounce1, .double-bounce2 {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: #2C74B3;
+    opacity: 0.6;
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: sk-bounce 2.0s infinite ease-in-out;
+}
+
+.double-bounce2 {
+    animation-delay: -1.0s;
+}
+
+@keyframes sk-bounce {
+    0%, 100% { transform: scale(0.0) }
+    50% { transform: scale(1.0) }
+}
+
+.loading-text {
+    color: #fff;
+    font-size: 1.1rem;
+    opacity: 0.8;
+}
+
+/* Results Section Styles */
+.results-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.result-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.tab-button.active {
+    background: #007bff;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.phishing-reasons {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.phishing-reasons li {
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.phishing-reasons li:last-child {
+    border-bottom: none;
+}
+
+.result-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.result-card.malicious {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.result-card h3 {
+    color: #fff;
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+}
+
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.result-item {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.result-item .label {
+    display: block;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.result-item .value {
+    display: block;
+    color: #fff;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.8em;
+}
+
+.alert {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+}
+
+.alert-success {
+    background: rgba(40, 167, 69, 0.2);
+}
+
+.alert-danger {
+    background: rgba(220, 53, 69, 0.2);
+}
+
+.progress-container {
+    background: rgba(0, 0, 0, 0.2);
+    height: 25px;
+    border-radius: 15px;
+    margin: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 15px;
+    font-weight: 500;
+    line-height: 25px;
+    text-align: center;
+    color: #fff;
+    transition: width 0.6s ease;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.progress-bar.success {
+    background-color: #28a745;
+}
+
+.progress-bar.warning {
+    background-color: #ffc107;
+}
+
+.progress-bar.danger {
+    background-color: #dc3545;
+}
+
+.progress-bar-width {
+    width: var(--progress-width, 0%);
+}
+
+@media (max-width: 768px) {
+    .check-type-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .check-type-item {
+        width: 100%;
+        text-align: center;
+    }
+
+    .result-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.container {
+    max-width: 100%;
+    padding: 0 2rem;
+}
+.card {
+    margin-bottom: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+.card-header, .card-body {
+    padding: 1.5rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('searchForm');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const loadingMessage = document.getElementById('loadingMessage');
+    const messages = [
+        'Tarama başlatılıyor...',
+        'Veritabanları kontrol ediliyor...',
+        'Sonuçlar analiz ediliyor...',
+        'Rapor hazırlanıyor...'
+    ];
+    let messageIndex = 0;
+
+    if (form) {
+        form.addEventListener('submit', function() {
+            loadingSpinner.style.display = 'block';
+            
+            // Yükleme mesajlarını değiştir
+            const messageInterval = setInterval(() => {
+                messageIndex = (messageIndex + 1) % messages.length;
+                loadingMessage.textContent = messages[messageIndex];
+            }, 2000);
+
+            // Form gönderildikten 10 saniye sonra interval'i temizle
+            setTimeout(() => {
+                clearInterval(messageInterval);
+            }, 10000);
+        });
+    }
+
+    // Seçim değiştiğinde sonuçları temizle
+    document.querySelectorAll('input[name="check_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.querySelector('.results-section').innerHTML = '';
+            document.querySelector('input[name="value"]').value = '';
+        });
+    });
+
+    // Tab değiştirme
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Aktif tab'ı değiştir
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            button.classList.add('active');
+            document.getElementById(button.dataset.tab + '-tab').classList.add('active');
+        });
+    });
+
+    // Progress bar initialization
+    const confidenceBar = document.getElementById('confidenceBar');
+    if (confidenceBar) {
+        const score = parseInt(confidenceBar.dataset.score);
+        let scoreClass = 'success';
+        if (score >= 75) {
+            scoreClass = 'danger';
+        } else if (score >= 25) {
+            scoreClass = 'warning';
+        }
+        confidenceBar.classList.add(scoreClass);
+        confidenceBar.style.width = score + '%';
+    }
+});
+</script>
+{% endblock %} 

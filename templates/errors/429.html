@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="error-page">
+                <h1 class="display-1">429</h1>
+                <h2 class="mb-4">İstek Limiti Aşıldı</h2>
+                <p class="lead mb-4">Çok fazla istek gönderdiniz. Lütfen bir süre bekleyip tekrar deneyin.</p>
+                <div class="retry-info mb-4">
+                    <p>Kalan bekleme süresi: <span id="countdown">60</span> saniye</p>
+                </div>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>Ana Sayfaya Dön
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-page {
+    padding: 3rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+.error-page h1 {
+    color: #ffc107;
+    font-weight: bold;
+}
+.error-page h2 {
+    color: #343a40;
+}
+.retry-info {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+}
+</style>
+
+<script>
+let countdown = 60;
+const countdownDisplay = document.getElementById('countdown');
+
+const timer = setInterval(() => {
+    countdown--;
+    countdownDisplay.textContent = countdown;
+    if (countdown <= 0) {
+        clearInterval(timer);
+        window.location.reload();
+    }
+}, 1000);
+</script>
+{% endblock %} 

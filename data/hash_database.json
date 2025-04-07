@@ -1,0 +1,29 @@
+{
+    "e4a261a7947c85045df7a8cee84d0485df1b8e244e2e55d64b01d1318f4f83ef": {
+        "type": "sha256",
+        "malware_name": "Prometei",
+        "file_type": "elf",
+        "detection_date": "2025-04-07 19:32:49",
+        "source": "MalwareBazaar",
+        "tags": ["elf", "Prometei"],
+        "severity": "high"
+    },
+    "aff7242857e7caeabebafba56d119c3d204a4c36ba03c330841776de9dca2c87": {
+        "type": "sha256",
+        "malware_name": "Prometei",
+        "file_type": "elf",
+        "detection_date": "2025-04-07 19:32:51",
+        "source": "MalwareBazaar",
+        "tags": ["elf", "Prometei"],
+        "severity": "high"
+    },
+    "71d6347e3f45ec61f0c5296e46b2aaf4": {
+        "type": "md5",
+        "malware_name": "Prometei",
+        "file_type": "elf",
+        "detection_date": "2025-04-07 20:07:44",
+        "source": "MalwareBazaar",
+        "tags": ["elf", "Prometei"],
+        "severity": "high"
+    }
+} 

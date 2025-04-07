@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card slide-in">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>Analiz Sonuçları
+                    </h5>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Genel Bilgiler -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Analiz Tipi</h6>
+                                    <p class="card-text">
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-{{ result.type_icon }} me-1"></i>
+                                            {{ result.type }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Analiz Tarihi</h6>
+                                    <p class="card-text">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        {{ result.timestamp }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- URL Analiz Sonuçları -->
+                    {% if result.error %}
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Hata
+                        </h6>
+                        <p class="mb-0">{{ result.error }}</p>
+                    </div>
+                    {% else %}
+                    <div class="alert {% if result.risk_score >= 75 %}alert-danger{% elif result.risk_score >= 50 %}alert-warning{% else %}alert-success{% endif %}">
+                        <h6 class="alert-heading">
+                            <i class="fas {% if result.risk_score >= 75 %}fa-exclamation-triangle{% elif result.risk_score >= 50 %}fa-exclamation-circle{% else %}fa-check-circle{% endif %} me-2"></i>
+                            Risk Skoru: {{ result.risk_score }}/100
+                        </h6>
+                        <p class="mb-0">
+                            {% if result.risk_score >= 75 %}
+                                Bu URL yüksek riskli olarak değerlendirildi.
+                            {% elif result.risk_score >= 50 %}
+                                Bu URL orta riskli olarak değerlendirildi.
+                            {% else %}
+                                Bu URL düşük riskli olarak değerlendirildi.
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <div class="accordion mt-3" id="analysisAccordion">
+                        <!-- Domain Bilgileri -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="domainHeading">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#domainCollapse">
+                                    <i class="fas fa-globe me-2"></i>Domain Bilgileri
+                                </button>
+                            </h2>
+                            <div id="domainCollapse" class="accordion-collapse collapse show" data-bs-parent="#analysisAccordion">
+                                <div class="accordion-body">
+                                    <ul class="list-group">
+                                        {% if result.domain_info %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>Kayıt Şirketi</span>
+                                                <span class="badge bg-primary">{{ result.domain_info.registrar or 'Bilinmiyor' }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>Oluşturulma Tarihi</span>
+                                                <span class="badge bg-info">{{ result.domain_info.creation_date or 'Bilinmiyor' }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>Domain Yaşı</span>
+                                                <span class="badge bg-secondary">{{ result.domain_info.domain_age_days or 'Bilinmiyor' }} gün</span>
+                                            </li>
+                                        {% else %}
+                                            <li class="list-group-item text-center text-muted">Domain bilgisi bulunamadı</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- URL Yapısı -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="urlHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#urlCollapse">
+                                    <i class="fas fa-link me-2"></i>URL Yapısı
+                                </button>
+                            </h2>
+                            <div id="urlCollapse" class="accordion-collapse collapse" data-bs-parent="#analysisAccordion">
+                                <div class="accordion-body">
+                                    <ul class="list-group">
+                                        {% if result.url_structure %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>Protokol</span>
+                                                <span class="badge bg-primary">{{ result.url_structure.scheme }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>Domain</span>
+                                                <span class="badge bg-info">{{ result.url_structure.netloc }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>Yol</span>
+                                                <span class="badge bg-secondary">{{ result.url_structure.path or '/' }}</span>
+                                            </li>
+                                            {% if result.url_structure.query %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span>Parametreler</span>
+                                                <span class="badge bg-warning text-dark">{{ result.url_structure.query }}</span>
+                                            </li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="list-group-item text-center text-muted">URL yapısı analiz edilemedi</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DNS Kayıtları -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="dnsHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dnsCollapse">
+                                    <i class="fas fa-server me-2"></i>DNS Kayıtları
+                                </button>
+                            </h2>
+                            <div id="dnsCollapse" class="accordion-collapse collapse" data-bs-parent="#analysisAccordion">
+                                <div class="accordion-body">
+                                    <ul class="list-group">
+                                        {% if result.dns_records %}
+                                            {% if result.dns_records.a_records %}
+                                            <li class="list-group-item">
+                                                <h6 class="mb-2">A Kayıtları</h6>
+                                                {% for record in result.dns_records.a_records %}
+                                                <span class="badge bg-primary me-1">{{ record }}</span>
+                                                {% endfor %}
+                                            </li>
+                                            {% endif %}
+                                            
+                                            {% if result.dns_records.mx_records %}
+                                            <li class="list-group-item">
+                                                <h6 class="mb-2">MX Kayıtları</h6>
+                                                {% for record in result.dns_records.mx_records %}
+                                                <span class="badge bg-info me-1">{{ record }}</span>
+                                                {% endfor %}
+                                            </li>
+                                            {% endif %}
+                                            
+                                            {% if result.dns_records.txt_records %}
+                                            <li class="list-group-item">
+                                                <h6 class="mb-2">TXT Kayıtları</h6>
+                                                {% for record in result.dns_records.txt_records %}
+                                                <span class="badge bg-secondary me-1">{{ record }}</span>
+                                                {% endfor %}
+                                            </li>
+                                            {% endif %}
+                                            
+                                            {% if result.dns_records.ns_records %}
+                                            <li class="list-group-item">
+                                                <h6 class="mb-2">NS Kayıtları</h6>
+                                                {% for record in result.dns_records.ns_records %}
+                                                <span class="badge bg-warning text-dark me-1">{{ record }}</span>
+                                                {% endfor %}
+                                            </li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="list-group-item text-center text-muted">DNS kayıtları bulunamadı</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Öneriler -->
+                    {% if result.recommendations %}
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-3 text-muted">Öneriler</h6>
+                                    <div class="list-group">
+                                        {% for recommendation in result.recommendations %}
+                                        <div class="list-group-item">
+                                            <i class="fas fa-lightbulb text-warning me-2"></i>
+                                            {{ recommendation }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Ek Bilgiler -->
+                    {% if result.additional_info %}
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-3 text-muted">Ek Bilgiler</h6>
+                                    <div class="bg-dark rounded p-3">
+                                        <pre class="mb-0"><code class="language-json">{{ result.additional_info|tojson(indent=2) }}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İlgili Tehditler -->
+    {% if result.related_threats %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card slide-in">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>İlgili Tehditler
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Tip</th>
+                                    <th>Değer</th>
+                                    <th>Durum</th>
+                                    <th>Detaylar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for threat in result.related_threats %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        {{ threat.timestamp }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ threat.type_color }}">
+                                            <i class="fas fa-{{ threat.type_icon }} me-1"></i>
+                                            {{ threat.type }}
+                                        </span>
+                                    </td>
+                                    <td>{{ threat.value }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ threat.status_color }}">
+                                            <i class="fas fa-{{ threat.status_icon }} me-1"></i>
+                                            {{ threat.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ threat.details_url }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Syntax highlighting for JSON
+    document.querySelectorAll('pre code').forEach((block) => {
+        hljs.highlightBlock(block);
+    });
+
+    // Add animation to risk indicator
+    const riskIndicator = document.querySelector('.risk-indicator .progress-bar');
+    if (riskIndicator) {
+        const width = riskIndicator.style.width;
+        riskIndicator.style.width = '0';
+        setTimeout(() => {
+            riskIndicator.style.width = width;
+        }, 100);
+    }
+</script>
+{% endblock %} 

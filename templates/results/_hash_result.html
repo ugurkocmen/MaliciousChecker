@@ -1,0 +1,59 @@
+<div class="table-responsive">
+    <table class="table table-hover">
+        {% if result.malicious %}
+            <tr>
+                <th style="width: 200px;">Hash:</th>
+                <td>{{ result.hash }}</td>
+            </tr>
+            <tr>
+                <th>Durum:</th>
+                <td><span class="badge bg-danger">Zararlı</span></td>
+            </tr>
+            <tr>
+                <th>Dosya Adı:</th>
+                <td>{{ result.file_name }}</td>
+            </tr>
+            <tr>
+                <th>Dosya Boyutu:</th>
+                <td>{{ result.file_size }} bytes</td>
+            </tr>
+            <tr>
+                <th>Dosya Türü:</th>
+                <td>{{ result.file_type }}</td>
+            </tr>
+            <tr>
+                <th>İmza:</th>
+                <td>{{ result.signature }}</td>
+            </tr>
+            <tr>
+                <th>İlk Görülme:</th>
+                <td>{{ result.first_seen }}</td>
+            </tr>
+            <tr>
+                <th>Son Görülme:</th>
+                <td>{{ result.last_seen }}</td>
+            </tr>
+            <tr>
+                <th>Etiketler:</th>
+                <td>
+                    {% for tag in result.tags %}
+                        <span class="badge bg-info me-1">{{ tag }}</span>
+                    {% endfor %}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <th>Hash:</th>
+                <td>{{ result.hash }}</td>
+            </tr>
+            <tr>
+                <th>Durum:</th>
+                <td><span class="badge bg-success">Güvenli</span></td>
+            </tr>
+            <tr>
+                <th>Mesaj:</th>
+                <td>{{ result.message }}</td>
+            </tr>
+        {% endif %}
+    </table>
+</div> 

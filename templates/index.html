@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 mx-auto text-center">
+                <h1 class="display-4 mb-4">Malicious Checker</h1>
+                <p class="lead mb-5">Güvenlik analiz ve tehdit tespit platformu</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="#search-form" class="btn btn-light btn-lg">
+                        <i class="fas fa-search me-2"></i>Analiz Başlat
+                    </a>
+                    <a href="#features" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-info-circle me-2"></i>Özellikler
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="container" id="search-form">
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <div class="card slide-in">
+                <div class="card-body">
+                    <h4 class="card-title text-center mb-4">
+                        <i class="fas fa-search me-2"></i>Güvenlik Analizi
+                    </h4>
+                    <form method="POST" class="needs-validation" novalidate>
+                        <div class="mb-4">
+                            <label for="search_type" class="form-label">Analiz Tipi</label>
+                            <select class="form-select" id="search_type" name="search_type" required>
+                                <option value="">Seçiniz...</option>
+                                <option value="url">URL Analizi</option>
+                                <option value="ip">IP Analizi</option>
+                                <option value="hash">Hash Analizi</option>
+                                <option value="mail">Mail Güvenliği</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="search_value" class="form-label">Değer</label>
+                            <input type="text" class="form-control" id="search_value" name="search_value" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search me-2"></i>Analiz Et
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="container" id="features">
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-5">
+            <h2 class="display-5">Özellikler</h2>
+            <p class="lead text-muted">Güvenlik analiz platformumuzun sunduğu özellikler</p>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h5 class="card-title">URL Analizi</h5>
+                    <p class="card-text">URL'lerin güvenlik durumunu kontrol edin ve tehditleri tespit edin.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <h5 class="card-title">IP Analizi</h5>
+                    <p class="card-text">IP adreslerinin güvenlik durumunu analiz edin.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-fingerprint"></i>
+                    </div>
+                    <h5 class="card-title">Hash Analizi</h5>
+                    <p class="card-text">Dosya hash'lerini kontrol edin ve zararlı yazılımları tespit edin.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h5 class="card-title">Mail Güvenliği</h5>
+                    <p class="card-text">E-posta güvenliğini kontrol edin ve oltalama saldırılarını tespit edin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Threats Section -->
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card slide-in">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Son Tehditler
+                    </h5>
+                    <a href="{{ url_for('recent_threats') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>Tümünü Gör
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Tip</th>
+                                    <th>Değer</th>
+                                    <th>Durum</th>
+                                    <th>Detaylar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for threat in recent_threats %}
+                                <tr>
+                                    <td>{{ threat.timestamp }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ threat.type_color }}">
+                                            <i class="fas fa-{{ threat.type_icon }} me-1"></i>
+                                            {{ threat.type }}
+                                        </span>
+                                    </td>
+                                    <td>{{ threat.value }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ threat.status_color }}">
+                                            <i class="fas fa-{{ threat.status_icon }} me-1"></i>
+                                            {{ threat.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ threat.details_url }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form validation
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+
+    // Dynamic form placeholders
+    document.getElementById('search_type').addEventListener('change', function() {
+        const valueInput = document.getElementById('search_value');
+        const selectedType = this.value;
+        
+        switch(selectedType) {
+            case 'url':
+                valueInput.placeholder = 'https://example.com';
+                break;
+            case 'ip':
+                valueInput.placeholder = '192.168.1.1';
+                break;
+            case 'hash':
+                valueInput.placeholder = 'MD5, SHA1, SHA256 hash değeri';
+                break;
+            case 'mail':
+                valueInput.placeholder = 'example@domain.com';
+                break;
+            default:
+                valueInput.placeholder = '';
+        }
+    });
+
+    // Smooth scroll to sections
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sol Panel - Harita -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        Gerçek Zamanlı Tehdit Haritası
+                        <span class="badge bg-danger ms-2" id="activeThreats">0</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="threatMap" style="height: 500px;"></div>
+                </div>
+            </div>
+            
+            <!-- Metrikler -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Aktif Tehditler</h6>
+                            <h2 class="mb-0" id="activeThreatCount">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Şüpheli IP'ler</h6>
+                            <h2 class="mb-0" id="suspiciousIpCount">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Zararlı Domainler</h6>
+                            <h2 class="mb-0" id="maliciousDomainCount">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Engellenen Saldırılar</h6>
+                            <h2 class="mb-0" id="blockedAttackCount">0</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sağ Panel - Canlı Akış -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        Canlı Tehdit Akışı
+                        <div class="float-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoScroll" checked>
+                                <label class="form-check-label" for="autoScroll">Otomatik Kaydırma</label>
+                            </div>
+                        </div>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="threatFeed" style="height: 600px; overflow-y: auto;">
+                        <!-- Tehdit akışı buraya gelecek -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trend Grafikleri -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tehdit Türü Dağılımı</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="threatTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Saldırı Trendi (Son 24 Saat)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="attackTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<style>
+.threat-item {
+    padding: 10px;
+    border-left: 4px solid;
+    margin-bottom: 10px;
+    background: rgba(0,0,0,.03);
+    border-radius: 4px;
+}
+
+.threat-item.high {
+    border-left-color: #dc3545;
+}
+
+.threat-item.medium {
+    border-left-color: #ffc107;
+}
+
+.threat-item.low {
+    border-left-color: #28a745;
+}
+
+.threat-item .time {
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+.threat-item .details {
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+
+#threatMap {
+    border-radius: 4px;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+    border: none;
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+</style>
+
+<script>
+// WebSocket bağlantısı
+const ws = new WebSocket('ws://' + window.location.host + '/ws/threats');
+
+// Harita başlatma
+const map = L.map('threatMap').setView([0, 0], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+const markers = new Map();
+const threatFeed = document.getElementById('threatFeed');
+const autoScroll = document.getElementById('autoScroll');
+
+// Grafikleri başlat
+const typeCtx = document.getElementById('threatTypeChart').getContext('2d');
+const typeChart = new Chart(typeCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [],
+        datasets: [{
+            data: [],
+            backgroundColor: [
+                '#dc3545',
+                '#ffc107',
+                '#28a745',
+                '#17a2b8',
+                '#6610f2'
+            ]
+        }]
+    }
+});
+
+const trendCtx = document.getElementById('attackTrendChart').getContext('2d');
+const trendChart = new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'Saldırılar',
+            data: [],
+            borderColor: '#dc3545',
+            fill: false
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// WebSocket olayları
+ws.onmessage = function(event) {
+    const threat = JSON.parse(event.data);
+    
+    // Haritaya tehdit ekle
+    if (threat.location) {
+        const marker = L.marker([threat.location.lat, threat.location.lng])
+            .bindPopup(`
+                <strong>${threat.type}</strong><br>
+                ${threat.indicator}<br>
+                Güven Skoru: ${threat.confidence_score}%
+            `);
+        
+        markers.set(threat.id, marker.addTo(map));
+        
+        // 5 dakika sonra markeri kaldır
+        setTimeout(() => {
+            map.removeLayer(markers.get(threat.id));
+            markers.delete(threat.id);
+        }, 300000);
+    }
+    
+    // Tehdit akışına ekle
+    const threatItem = document.createElement('div');
+    threatItem.className = `threat-item ${threat.severity.toLowerCase()}`;
+    threatItem.innerHTML = `
+        <div class="time">${new Date().toLocaleTimeString()}</div>
+        <div class="type"><strong>${threat.type}</strong></div>
+        <div class="details">${threat.indicator}</div>
+    `;
+    
+    threatFeed.insertBefore(threatItem, threatFeed.firstChild);
+    
+    // Otomatik kaydırma
+    if (autoScroll.checked) {
+        threatFeed.scrollTop = 0;
+    }
+    
+    // Metrikleri güncelle
+    updateMetrics(threat);
+    
+    // Grafikleri güncelle
+    updateCharts(threat);
+};
+
+function updateMetrics(threat) {
+    document.getElementById('activeThreatCount').textContent = 
+        parseInt(document.getElementById('activeThreatCount').textContent) + 1;
+    
+    if (threat.type === 'ip') {
+        document.getElementById('suspiciousIpCount').textContent = 
+            parseInt(document.getElementById('suspiciousIpCount').textContent) + 1;
+    } else if (threat.type === 'domain') {
+        document.getElementById('maliciousDomainCount').textContent = 
+            parseInt(document.getElementById('maliciousDomainCount').textContent) + 1;
+    }
+}
+
+function updateCharts(threat) {
+    // Tehdit türü grafiğini güncelle
+    const typeIndex = typeChart.data.labels.indexOf(threat.type);
+    if (typeIndex === -1) {
+        typeChart.data.labels.push(threat.type);
+        typeChart.data.datasets[0].data.push(1);
+    } else {
+        typeChart.data.datasets[0].data[typeIndex]++;
+    }
+    typeChart.update();
+    
+    // Trend grafiğini güncelle
+    const now = new Date().toLocaleTimeString();
+    if (trendChart.data.labels.length >= 24) {
+        trendChart.data.labels.shift();
+        trendChart.data.datasets[0].data.shift();
+    }
+    trendChart.data.labels.push(now);
+    trendChart.data.datasets[0].data.push(
+        (trendChart.data.datasets[0].data[trendChart.data.datasets[0].data.length - 1] || 0) + 1
+    );
+    trendChart.update();
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="recent-threats-container">
+                <div class="container py-5">
+                    <div class="text-center mb-5">
+                        <div class="threat-logo-container mb-4">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h1 class="display-4 mb-4">Son Tehditler</h1>
+                        <p class="lead text-muted">Sistemde tespit edilen en son tehditler ve güvenlik olayları</p>
+                    </div>
+
+                    {% if threats %}
+                    <div class="threat-card">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tarih</th>
+                                        <th>Tür</th>
+                                        <th>Değer</th>
+                                        <th>Durum</th>
+                                        <th>Detaylar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for threat in threats %}
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-calendar-alt me-2"></i>
+                                            {{ threat.timestamp }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ threat.type_color }}">
+                                                <i class="fas fa-{{ threat.type_icon }} me-1"></i>
+                                                {{ threat.type }}
+                                            </span>
+                                        </td>
+                                        <td>{{ threat.value }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ threat.status_color }}">
+                                                <i class="fas fa-{{ threat.status_icon }} me-1"></i>
+                                                {{ threat.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ threat.details_url }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info bg-transparent" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Henüz tehdit tespit edilmedi.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    --threat-primary: #1a1a1a;
+    --threat-secondary: #2d2d2d;
+    --threat-accent: #007bff;
+    --threat-text: #ffffff;
+    --threat-muted: #6c757d;
+}
+
+.recent-threats-container {
+    background: linear-gradient(135deg, var(--threat-primary) 0%, var(--threat-secondary) 100%);
+    min-height: calc(100vh - 50px);
+    color: var(--threat-text);
+    border-radius: 15px;
+}
+
+.threat-logo-container {
+    font-size: 3rem;
+    color: var(--threat-accent);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.threat-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.threat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.table {
+    color: var(--threat-text);
+    margin-bottom: 0;
+}
+
+.table thead th {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    color: var(--threat-accent);
+    font-weight: 600;
+    padding: 1rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.table tbody td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+.table tbody tr {
+    transition: all 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-weight: 500;
+}
+
+.btn-outline-primary {
+    color: var(--threat-accent);
+    border-color: var(--threat-accent);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--threat-accent);
+    color: var(--threat-text);
+}
+
+.alert {
+    border: 1px solid var(--threat-accent);
+    color: var(--threat-accent);
+}
+
+/* Scrollbar Customization */
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--threat-accent);
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+}
+
+@media (max-width: 768px) {
+    .table thead {
+        display: none;
+    }
+    
+    .table tbody td {
+        display: block;
+        padding: 0.5rem 1rem;
+        text-align: left;
+    }
+    
+    .table tbody td:before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+        color: var(--threat-accent);
+        margin-right: 1rem;
+    }
+}
+</style>
+{% endblock %} 

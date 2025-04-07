@@ -1,0 +1,40 @@
+<div class="table-responsive">
+    <table class="table table-hover">
+        <tr>
+            <th style="width: 200px;">URL:</th>
+            <td>{{ result.url }}</td>
+        </tr>
+        <tr>
+            <th>Durum:</th>
+            <td>
+                {% if result.is_malicious %}
+                    <span class="badge bg-danger">Zararlı</span>
+                {% else %}
+                    <span class="badge bg-success">Güvenli</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>SSL:</th>
+            <td>
+                {% if result.has_ssl %}
+                    <span class="badge bg-success">Var</span>
+                {% else %}
+                    <span class="badge bg-warning">Yok</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>IP:</th>
+            <td>{{ result.ip }}</td>
+        </tr>
+        <tr>
+            <th>Ülke:</th>
+            <td>{{ result.country }}</td>
+        </tr>
+        <tr>
+            <th>Sunucu:</th>
+            <td>{{ result.server }}</td>
+        </tr>
+    </table>
+</div> 
